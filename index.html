@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Postcode Heat Mapper</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --line: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      backdrop-filter: blur(6px);
+    }
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+    .muted { color: var(--muted); }
+    textarea, input, select, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0b1220;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+    }
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.35;
+    }
+    input[type="color"] {
+      padding: 4px;
+      height: 42px;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(180deg, #0ea5e9, #0284c7);
+      border: none;
+      font-weight: 700;
+      transition: transform .12s ease, opacity .12s ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button.secondary {
+      background: #1e293b;
+      border: 1px solid var(--line);
+      font-weight: 600;
+    }
+    button.ghost {
+      background: transparent;
+      border: 1px dashed var(--line);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 110px;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: end;
+    }
+    .pillbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0 0;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      background: #0b1220;
+      border-radius: 999px;
+      padding: 8px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .map-panel {
+      min-height: 760px;
+      position: sticky;
+      top: 14px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .toolbar button { width: auto; padding: 10px 14px; }
+    #mapWrap {
+      background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 45%, #f8fafc 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(51,65,85,.18);
+      min-height: 700px;
+      overflow: hidden;
+      position: relative;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: radial-gradient(circle at 65% 18%, rgba(255,255,255,.75), rgba(255,255,255,0) 28%);
+    }
+    .uk-land {
+      fill: #d1d5db;
+      stroke: #94a3b8;
+      stroke-width: 1.8;
+    }
+    .coastline {
+      fill: none;
+      stroke: rgba(255,255,255,.55);
+      stroke-width: 1.4;
+    }
+    .gridline {
+      stroke: rgba(15,23,42,.08);
+      stroke-width: 1;
+    }
+    .legend, .stats, .notes {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, .74);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, .18);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.35);
+      flex: 0 0 auto;
+    }
+    .small { font-size: 13px; }
+    .ok { color: #86efac; }
+    .warn { color: #fcd34d; }
+    .bad { color: #fca5a5; }
+    .period-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 10px;
+      background: rgba(11,18,32,.72);
+    }
+    .period-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .info-table td {
+      border-top: 1px solid rgba(148,163,184,.14);
+      padding: 7px 0;
+      vertical-align: top;
+    }
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    @media (max-width: 1180px) {
+      .grid { grid-template-columns: 1fr; }
+      .map-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>UK Postcode Heat Mapper</h1>
+    <div class="subtitle">
+      Paste postcodes directly, optionally with dates. Filter across multiple date periods, assign separate colours, and export the finished map as a PNG. This is a fully static front-end app: no backend, no database, no paid service.
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <h2>1) Paste your data</h2>
+          <div class="muted small">Accepted examples:</div>
+          <div class="pillbar">
+            <div class="pill">BR8 7RE</div>
+            <div class="pill">2026-03-01, BR8 7RE</div>
+            <div class="pill">BR8 7RE, 01/03/2026</div>
+            <div class="pill">Job123, BR8 7RE, 2026-03-01</div>
+          </div>
+          <textarea id="dataInput" placeholder="Paste rows here...
+Example:
+2026-03-01, BR8 7RE
+2026-03-02, ME19 5DP
+2026-03-08, BR8 7RE
+SW1A 1AA"></textarea>
+
+          <div class="row">
+            <div>
+              <label class="small muted">Postcode column</label>
+              <select id="postcodeColumn">
+                <option value="auto">Auto detect</option>
+                <option value="0">Column 1</option>
+                <option value="1">Column 2</option>
+                <option value="2">Column 3</option>
+                <option value="3">Column 4</option>
+                <option value="4">Column 5</option>
+              </select>
+            </div>
+            <div>
+              <label class="small muted">Date column</label>
+              <select id="dateColumn">
+                <option value="auto">Auto detect</option>
+                <option value="none">No dates in data</option>
+                <option value="0">Column 1</option>
+                <option value="1">Column 2</option>
+                <option value="2">Column 3</option>
+                <option value="3">Column 4</option>
+                <option value="4">Column 5</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <button id="loadSample" class="secondary">Load sample data</button>
+            <button id="clearData" class="ghost">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px;">
+          <h2>2) Date periods and colours</h2>
+          <div class="muted small">Add one or more layers. Each layer is filtered by date range and drawn in its own colour. If your data has no dates, create a single layer and leave dates blank.</div>
+          <div id="periods"></div>
+          <div class="row">
+            <button id="addPeriod" class="secondary">Add period</button>
+            <button id="renderMap">Build heat map</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px;">
+          <h2>3) Notes</h2>
+          <div class="notes small">
+            <div>• Full postcode locations are resolved in the browser using the free Postcodes.io API and then cached locally for re-use.</div>
+            <div>• This means the app stays static and GitHub Pages-friendly.</div>
+            <div>• Invalid or unresolved postcodes are listed in the summary so they can be cleaned up.</div>
+          </div>
+          <div class="footer-note">
+            Tip: for a Windows desktop feel, you can open this locally or host it on GitHub Pages and install it as an app in Edge or Chrome.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel map-panel">
+        <div class="toolbar">
+          <button id="exportPng" class="secondary">Export PNG</button>
+          <button id="exportCsv" class="secondary">Export plotted points CSV</button>
+          <button id="resetZoom" class="secondary">Reset view</button>
+        </div>
+        <div id="mapWrap">
+          <svg id="mapSvg" viewBox="0 0 900 1200" aria-label="UK postcode heat map">
+            <defs>
+              <filter id="blurGlow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="13" result="blur" />
+              </filter>
+            </defs>
+            <g id="viewport">
+              <g id="gridLayer"></g>
+              <g id="baseMap">
+                <path class="uk-land" d="M490 75 L525 98 L552 138 L542 183 L567 226 L562 274 L590 320 L606 363 L586 412 L600 461 L575 512 L584 577 L549 621 L540 679 L502 718 L476 770 L437 812 L414 873 L373 924 L343 982 L297 1031 L265 1055 L228 1025 L197 977 L177 924 L167 868 L177 814 L160 770 L172 720 L189 672 L204 616 L227 562 L220 505 L236 450 L263 415 L275 366 L302 325 L311 279 L336 233 L342 186 L372 146 L406 117 L448 92 Z"></path>
+                <path class="uk-land" d="M255 156 L291 171 L307 201 L300 232 L276 250 L243 243 L221 220 L219 192 Z"></path>
+                <path class="uk-land" d="M340 1018 L380 1036 L401 1070 L394 1113 L360 1147 L319 1140 L289 1112 L286 1070 L309 1038 Z"></path>
+                <path class="uk-land" d="M585 1015 L627 1033 L649 1071 L640 1111 L605 1137 L565 1130 L543 1092 L548 1052 Z"></path>
+                <path class="coastline" d="M480 95 L522 125 L535 166 L552 225 L583 315"></path>
+              </g>
+              <g id="heatGlow"></g>
+              <g id="heatPoints"></g>
+            </g>
+          </svg>
+        </div>
+        <div id="stats" class="stats small">No data plotted yet.</div>
+        <div id="legend" class="legend small">Legend will appear here.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const POSTCODES_API = 'https://api.postcodes.io/postcodes?filter=postcode,longitude,latitude';
+    const STORAGE_KEY = 'uk-postcode-heatmap-cache-v1';
+    const UK_BOUNDS = { minLon: -8.8, maxLon: 2.2, minLat: 49.7, maxLat: 60.95 };
+    const MOCK_LOOKUPS = {
+      'BR8 7RE': { postcode: 'BR8 7RE', longitude: 0.178871, latitude: 51.411831 },
+      'ME19 5DP': { postcode: 'ME19 5DP', longitude: 0.409161, latitude: 51.296444 },
+      'SW1A 1AA': { postcode: 'SW1A 1AA', longitude: -0.141588, latitude: 51.501009 },
+      'M1 1AE': { postcode: 'M1 1AE', longitude: -2.235143, latitude: 53.479251 },
+      'LS1 4AP': { postcode: 'LS1 4AP', longitude: -1.548567, latitude: 53.799681 },
+      'B1 1TB': { postcode: 'B1 1TB', longitude: -1.907470, latitude: 52.479055 },
+      'EH1 1YZ': { postcode: 'EH1 1YZ', longitude: -3.190404, latitude: 55.952345 },
+      'CF10 1EP': { postcode: 'CF10 1EP', longitude: -3.176480, latitude: 51.481583 },
+      'G2 1DY': { postcode: 'G2 1DY', longitude: -4.257630, latitude: 55.860916 },
+      'BT1 5GS': { postcode: 'BT1 5GS', longitude: -5.929939, latitude: 54.597285 },
+      'EX1 1RS': { postcode: 'EX1 1RS', longitude: -3.533899, latitude: 50.723629 },
+      'PL1 1LP': { postcode: 'PL1 1LP', longitude: -4.148383, latitude: 50.371392 }
+    };
+    const SAMPLE_DATA = [
+      '2026-01-04, BR8 7RE',
+      '2026-01-05, BR8 7RE',
+      '2026-01-06, ME19 5DP',
+      '2026-01-12, SW1A 1AA',
+      '2026-01-13, M1 1AE',
+      '2026-02-03, LS1 4AP',
+      '2026-02-04, B1 1TB',
+      '2026-02-05, EH1 1YZ',
+      '2026-02-08, CF10 1EP',
+      '2026-02-08, BR8 7RE',
+      '2026-03-01, G2 1DY',
+      '2026-03-03, BT1 5GS',
+      '2026-03-05, EX1 1RS',
+      '2026-03-05, PL1 1LP',
+      '2026-03-08, ME19 5DP',
+      '2026-03-08, ME19 5DP'
+    ].join('\n');
+
+    const state = {
+      cache: loadCache(),
+      lastPlottedRows: [],
+      drag: null,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      periodId: 0
+    };
+
+    const els = {
+      dataInput: document.getElementById('dataInput'),
+      postcodeColumn: document.getElementById('postcodeColumn'),
+      dateColumn: document.getElementById('dateColumn'),
+      periods: document.getElementById('periods'),
+      stats: document.getElementById('stats'),
+      legend: document.getElementById('legend'),
+      heatGlow: document.getElementById('heatGlow'),
+      heatPoints: document.getElementById('heatPoints'),
+      gridLayer: document.getElementById('gridLayer'),
+      viewport: document.getElementById('viewport'),
+      mapSvg: document.getElementById('mapSvg'),
+      mapWrap: document.getElementById('mapWrap')
+    };
+
+    function loadCache() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCache() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cache));
+    }
+
+    function sanitisePostcode(value) {
+      if (!value) return '';
+      const cleaned = String(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const match = cleaned.match(/^([A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2})$/);
+      if (!match) return '';
+      const outward = cleaned.slice(0, cleaned.length - 3);
+      const inward = cleaned.slice(-3);
+      return `${outward} ${inward}`;
+    }
+
+    function looksLikeDate(value) {
+      if (!value) return false;
+      const trimmed = String(value).trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) || /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/.test(trimmed) || !Number.isNaN(Date.parse(trimmed));
+    }
+
+    function parseFlexibleDate(value) {
+      if (!value) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      const slash = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (slash) {
+        let [_, d, m, y] = slash;
+        if (y.length === 2) y = `20${y}`;
+        const iso = `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        return Number.isNaN(Date.parse(iso)) ? null : iso;
+      }
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0,10);
+    }
+
+    function splitRow(line) {
+      const trimmed = line.trim();
+      if (!trimmed) return [];
+      if (trimmed.includes('\t')) return trimmed.split('\t').map(v => v.trim());
+      if (trimmed.includes(',')) return trimmed.split(',').map(v => v.trim());
+      if (trimmed.includes(';')) return trimmed.split(';').map(v => v.trim());
+      return trimmed.split(/\s{2,}/).map(v => v.trim()).filter(Boolean).length > 1
+        ? trimmed.split(/\s{2,}/).map(v => v.trim())
+        : [trimmed];
+    }
+
+    function detectColumns(rows) {
+      const requestedPostcode = els.postcodeColumn.value;
+      const requestedDate = els.dateColumn.value;
+      if (requestedPostcode !== 'auto' || requestedDate !== 'auto') {
+        return {
+          postcodeIndex: requestedPostcode === 'auto' ? detectColumns(rows).postcodeIndex : Number(requestedPostcode),
+          dateIndex: requestedDate === 'auto' ? detectColumns(rows).dateIndex : (requestedDate === 'none' ? null : Number(requestedDate))
+        };
+      }
+
+      const maxCols = Math.max(1, ...rows.map(r => r.length));
+      let postcodeIndex = 0;
+      let bestPcScore = -1;
+      let dateIndex = null;
+      let bestDateScore = -1;
+
+      for (let i = 0; i < maxCols; i++) {
+        let pcScore = 0;
+        let dtScore = 0;
+        for (const row of rows) {
+          const value = row[i] || '';
+          if (sanitisePostcode(value)) pcScore++;
+          if (looksLikeDate(value)) dtScore++;
+        }
+        if (pcScore > bestPcScore) {
+          bestPcScore = pcScore;
+          postcodeIndex = i;
+        }
+        if (dtScore > bestDateScore) {
+          bestDateScore = dtScore;
+          dateIndex = i;
+        }
+      }
+
+      if (bestDateScore <= 0) dateIndex = null;
+      return { postcodeIndex, dateIndex };
+    }
+
+    function parseRows() {
+      const lines = els.dataInput.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const split = lines.map(splitRow);
+      const { postcodeIndex, dateIndex } = detectColumns(split);
+      const rows = [];
+      const invalid = [];
+
+      for (const [lineNo, cols] of split.entries()) {
+        const singleValue = cols.length === 1 ? cols[0] : null;
+        const postcode = sanitisePostcode(cols[postcodeIndex] || singleValue || '');
+        const date = dateIndex == null ? null : parseFlexibleDate(cols[dateIndex] || '');
+
+        if (postcode) {
+          rows.push({
+            lineNo: lineNo + 1,
+            postcode,
+            date,
+            raw: cols.join(' | ')
+          });
+        } else {
+          invalid.push({ lineNo: lineNo + 1, raw: cols.join(' | ') });
+        }
+      }
+      return { rows, invalid, columns: { postcodeIndex, dateIndex } };
+    }
+
+    const URL_FLAGS = new URLSearchParams(window.location.search);
+
+    async function geocodePostcodes(postcodes) {
+      const uncached = postcodes.filter(pc => !state.cache[pc]);
+      if (URL_FLAGS.get('mock') === '1') {
+        for (const pc of uncached) state.cache[pc] = MOCK_LOOKUPS[pc] || null;
+        saveCache();
+        return postcodes.map(pc => ({ postcode: pc, lookup: state.cache[pc] || null }));
+      }
+      for (let i = 0; i < uncached.length; i += 100) {
+        const chunk = uncached.slice(i, i + 100);
+        const res = await fetch(POSTCODES_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postcodes: chunk })
+        });
+        if (!res.ok) throw new Error(`Lookup failed: ${res.status}`);
+        const json = await res.json();
+        for (const item of json.result || []) {
+          state.cache[item.query] = item.result ? {
+            postcode: item.result.postcode,
+            longitude: item.result.longitude,
+            latitude: item.result.latitude
+          } : null;
+        }
+      }
+      saveCache();
+      return postcodes.map(pc => ({ postcode: pc, lookup: state.cache[pc] || null }));
+    }
+
+    function lonToX(lon) {
+      return 120 + ((lon - UK_BOUNDS.minLon) / (UK_BOUNDS.maxLon - UK_BOUNDS.minLon)) * 640;
+    }
+
+    function latToY(lat) {
+      return 1100 - ((lat - UK_BOUNDS.minLat) / (UK_BOUNDS.maxLat - UK_BOUNDS.minLat)) * 980;
+    }
+
+    function dateInRange(date, start, end) {
+      if (!date && !start && !end) return true;
+      if (!date && (start || end)) return false;
+      if (start && date < start) return false;
+      if (end && date > end) return false;
+      return true;
+    }
+
+    function getPeriods() {
+      return [...document.querySelectorAll('.period-card')].map(card => ({
+        id: card.dataset.id,
+        name: card.querySelector('[data-role="name"]').value.trim() || `Period ${card.dataset.id}`,
+        start: card.querySelector('[data-role="start"]').value || '',
+        end: card.querySelector('[data-role="end"]').value || '',
+        color: card.querySelector('[data-role="color"]').value || '#ef4444'
+      }));
+    }
+
+    function aggregateRows(rows, periods, lookups) {
+      const lookupMap = new Map(lookups.map(x => [x.postcode, x.lookup]));
+      const result = [];
+      const unresolved = [];
+
+      for (const period of periods) {
+        const byPoint = new Map();
+        let includedRows = 0;
+
+        for (const row of rows) {
+          if (!dateInRange(row.date, period.start, period.end)) continue;
+          includedRows++;
+          const point = lookupMap.get(row.postcode);
+          if (!point) {
+            unresolved.push(row);
+            continue;
+          }
+          const key = `${point.longitude.toFixed(5)},${point.latitude.toFixed(5)}`;
+          const existing = byPoint.get(key) || {
+            lon: point.longitude,
+            lat: point.latitude,
+            count: 0,
+            samplePostcodes: new Set()
+          };
+          existing.count += 1;
+          existing.samplePostcodes.add(row.postcode);
+          byPoint.set(key, existing);
+        }
+
+        result.push({
+          ...period,
+          includedRows,
+          points: [...byPoint.values()].map(p => ({
+            ...p,
+            samplePostcodes: [...p.samplePostcodes].slice(0, 5)
+          }))
+        });
+      }
+
+      return { layers: result, unresolved };
+    }
+
+    function clearLayer(node) {
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function drawGrid() {
+      clearLayer(els.gridLayer);
+      for (let x = 120; x <= 760; x += 80) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('x2', x);
+        line.setAttribute('y1', 90);
+        line.setAttribute('y2', 1120);
+        line.setAttribute('class', 'gridline');
+        els.gridLayer.appendChild(line);
+      }
+      for (let y = 140; y <= 1080; y += 80) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', 90);
+        line.setAttribute('x2', 790);
+        line.setAttribute('y1', y);
+        line.setAttribute('y2', y);
+        line.setAttribute('class', 'gridline');
+        els.gridLayer.appendChild(line);
+      }
+    }
+
+    function drawHeatMap(layers) {
+      clearLayer(els.heatGlow);
+      clearLayer(els.heatPoints);
+
+      const maxCount = Math.max(1, ...layers.flatMap(l => l.points.map(p => p.count)));
+
+      for (const layer of layers) {
+        for (const point of layer.points) {
+          const x = lonToX(point.lon);
+          const y = latToY(point.lat);
+          const radius = 8 + (point.count / maxCount) * 26;
+
+          const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          glow.setAttribute('cx', x);
+          glow.setAttribute('cy', y);
+          glow.setAttribute('r', radius * 1.3);
+          glow.setAttribute('fill', layer.color);
+          glow.setAttribute('opacity', '0.22');
+          glow.setAttribute('filter', 'url(#blurGlow)');
+          els.heatGlow.appendChild(glow);
+
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', x);
+          dot.setAttribute('cy', y);
+          dot.setAttribute('r', radius * 0.7);
+          dot.setAttribute('fill', layer.color);
+          dot.setAttribute('fill-opacity', '0.58');
+          dot.setAttribute('stroke', 'rgba(255,255,255,.75)');
+          dot.setAttribute('stroke-width', '1');
+
+          const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+          title.textContent = `${layer.name}\nCount: ${point.count}\nSample postcodes: ${point.samplePostcodes.join(', ')}`;
+          dot.appendChild(title);
+          els.heatPoints.appendChild(dot);
+        }
+      }
+    }
+
+    function updateLegend(layers, invalidRows, unresolvedRows, totalRows, columns) {
+      const blocks = layers.map(layer => {
+        const plotted = layer.points.reduce((sum, p) => sum + p.count, 0);
+        return `
+          <div class="legend-item">
+            <div class="legend-swatch" style="background:${layer.color}"></div>
+            <div><strong>${escapeHtml(layer.name)}</strong> — ${layer.start || 'Any start'} to ${layer.end || 'Any end'} — ${plotted} plotted rows across ${layer.points.length} location points</div>
+          </div>`;
+      }).join('');
+
+      els.legend.innerHTML = `
+        <div><strong>Legend</strong></div>
+        ${blocks || '<div class="muted">No layers yet.</div>'}
+        <table class="info-table">
+          <tr><td>Detected postcode column</td><td>${columns.postcodeIndex == null ? 'N/A' : `Column ${columns.postcodeIndex + 1}`}</td></tr>
+          <tr><td>Detected date column</td><td>${columns.dateIndex == null ? 'None' : `Column ${columns.dateIndex + 1}`}</td></tr>
+          <tr><td>Rows pasted</td><td>${totalRows}</td></tr>
+          <tr><td>Rows with invalid postcode</td><td>${invalidRows.length}</td></tr>
+          <tr><td>Rows with unresolved postcode</td><td>${unresolvedRows.length}</td></tr>
+        </table>
+      `;
+    }
+
+    function updateStats(layers, invalidRows, unresolvedRows) {
+      const totalPoints = layers.reduce((sum, l) => sum + l.points.length, 0);
+      const totalPlottedRows = layers.reduce((sum, l) => sum + l.points.reduce((a, p) => a + p.count, 0), 0);
+      const invalidSnippet = invalidRows.slice(0, 8).map(x => `Line ${x.lineNo}: ${x.raw}`).join('<br>');
+      const unresolvedSnippet = unresolvedRows.slice(0, 8).map(x => `Line ${x.lineNo}: ${x.postcode}`).join('<br>');
+
+      els.stats.innerHTML = `
+        <div><strong>Map summary</strong></div>
+        <div class="ok">Plotted rows: ${totalPlottedRows}</div>
+        <div>Total plotted points: ${totalPoints}</div>
+        <div class="warn">Invalid input rows: ${invalidRows.length}</div>
+        <div class="bad">Unresolved postcodes: ${unresolvedRows.length}</div>
+        ${invalidRows.length ? `<div style="margin-top:8px;"><strong>Invalid rows:</strong><br>${invalidSnippet}${invalidRows.length > 8 ? '<br>…' : ''}</div>` : ''}
+        ${unresolvedRows.length ? `<div style="margin-top:8px;"><strong>Unresolved postcodes:</strong><br>${unresolvedSnippet}${unresolvedRows.length > 8 ? '<br>…' : ''}</div>` : ''}
+      `;
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function addPeriod(defaults = {}) {
+      state.periodId += 1;
+      const id = state.periodId;
+      const card = document.createElement('div');
+      card.className = 'period-card';
+      card.dataset.id = id;
+      card.innerHTML = `
+        <h3>
+          <span>Layer ${id}</span>
+          <button class="ghost" type="button" data-action="remove">Remove</button>
+        </h3>
+        <div class="row">
+          <div>
+            <label class="small muted">Legend name</label>
+            <input data-role="name" value="${defaults.name || `Period ${id}`}" />
+          </div>
+          <div>
+            <label class="small muted">Colour</label>
+            <input type="color" data-role="color" value="${defaults.color || ['#ef4444','#3b82f6','#10b981','#f59e0b','#a855f7'][id % 5]}" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label class="small muted">Start date</label>
+            <input type="date" data-role="start" value="${defaults.start || ''}" />
+          </div>
+          <div>
+            <label class="small muted">End date</label>
+            <input type="date" data-role="end" value="${defaults.end || ''}" />
+          </div>
+        </div>
+      `;
+      card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+        if (document.querySelectorAll('.period-card').length > 1) card.remove();
+      });
+      els.periods.appendChild(card);
+    }
+
+    async function render() {
+      const parsed = parseRows();
+      const periods = getPeriods();
+      if (!parsed.rows.length) {
+        els.stats.innerHTML = 'No valid postcode rows found.';
+        clearLayer(els.heatGlow);
+        clearLayer(els.heatPoints);
+        return;
+      }
+      const uniquePostcodes = [...new Set(parsed.rows.map(r => r.postcode))];
+      try {
+        const lookups = await geocodePostcodes(uniquePostcodes);
+        const { layers, unresolved } = aggregateRows(parsed.rows, periods, lookups);
+        state.lastPlottedRows = layers.flatMap(layer => layer.points.map(point => ({
+          layer: layer.name,
+          color: layer.color,
+          longitude: point.lon,
+          latitude: point.lat,
+          count: point.count,
+          sample_postcodes: point.samplePostcodes.join('; ')
+        })));
+        drawGrid();
+        drawHeatMap(layers);
+        updateLegend(layers, parsed.invalid, unresolved, parsed.rows.length + parsed.invalid.length, parsed.columns);
+        updateStats(layers, parsed.invalid, unresolved);
+      } catch (error) {
+        els.stats.innerHTML = `<span class="bad"><strong>Lookup failed.</strong> ${escapeHtml(error.message)}</span>`;
+      }
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCsv() {
+      if (!state.lastPlottedRows.length) {
+        alert('Build a heat map first.');
+        return;
+      }
+      const header = 'layer,color,longitude,latitude,count,sample_postcodes';
+      const lines = state.lastPlottedRows.map(row => [
+        row.layer,
+        row.color,
+        row.longitude,
+        row.latitude,
+        row.count,
+        `"${row.sample_postcodes.replaceAll('"', '""')}"`
+      ].join(','));
+      download('uk-postcode-heatmap-points.csv', [header, ...lines].join('\n'), 'text/csv;charset=utf-8');
+    }
+
+    async function exportPng() {
+      const svg = els.mapSvg;
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 900;
+        canvas.height = 1200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#eff6ff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = 'uk-postcode-heatmap.png';
+          a.click();
+          URL.revokeObjectURL(blobUrl);
+        });
+      };
+      img.src = url;
+    }
+
+    function bindPanZoom() {
+      const svg = els.mapSvg;
+      svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 1.08 : 0.92;
+        state.zoom = Math.max(0.7, Math.min(4.5, state.zoom * delta));
+        updateTransform();
+      }, { passive: false });
+
+      svg.addEventListener('pointerdown', (e) => {
+        state.drag = { x: e.clientX, y: e.clientY, startX: state.panX, startY: state.panY };
+        svg.setPointerCapture(e.pointerId);
+      });
+      svg.addEventListener('pointermove', (e) => {
+        if (!state.drag) return;
+        state.panX = state.drag.startX + (e.clientX - state.drag.x);
+        state.panY = state.drag.startY + (e.clientY - state.drag.y);
+        updateTransform();
+      });
+      svg.addEventListener('pointerup', () => state.drag = null);
+      svg.addEventListener('pointercancel', () => state.drag = null);
+    }
+
+    function updateTransform() {
+      els.viewport.setAttribute('transform', `translate(${state.panX}, ${state.panY}) scale(${state.zoom})`);
+    }
+
+    function resetZoom() {
+      state.zoom = 1;
+      state.panX = 0;
+      state.panY = 0;
+      updateTransform();
+    }
+
+    document.getElementById('renderMap').addEventListener('click', render);
+    document.getElementById('addPeriod').addEventListener('click', () => addPeriod());
+    document.getElementById('clearData').addEventListener('click', () => { els.dataInput.value = ''; });
+    document.getElementById('loadSample').addEventListener('click', () => { els.dataInput.value = SAMPLE_DATA; });
+    document.getElementById('exportCsv').addEventListener('click', exportCsv);
+    document.getElementById('exportPng').addEventListener('click', exportPng);
+    document.getElementById('resetZoom').addEventListener('click', resetZoom);
+
+    addPeriod({ name: 'Period 1', color: '#ef4444', start: '', end: '' });
+    addPeriod({ name: 'Period 2', color: '#3b82f6', start: '2026-02-01', end: '2026-03-31' });
+    drawGrid();
+    bindPanZoom();
+
+    if (URL_FLAGS.get('sample') === '1') {
+      els.dataInput.value = SAMPLE_DATA;
+    }
+    if (URL_FLAGS.get('autorender') === '1') {
+      render();
+    }
+  </script>
+</body>
+</html>
