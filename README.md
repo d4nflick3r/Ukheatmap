@@ -1,18 +1,21 @@
-# UK Postcode Heat Map - Accurate Boundary Version
+# UK Postcode Heat Map - OpenStreetMap version
 
-This version replaces the earlier hand-drawn UK silhouette with an actual UK boundary outline embedded directly into the page.
+This version uses a real interactive OpenStreetMap basemap with Leaflet.
 
 ## Features
 - paste postcodes directly
 - optional dates next to each postcode
 - multiple date periods
 - different colour per period
-- visible legend/key
-- export PNG
+- visible key / legend
+- real map of the UK
+- marker mode
+- heat circle mode
 - export plotted CSV
-- static front-end only
+- print view for browser PDF export
 
-## Notes
-- The UK outline is embedded in the page, so the base map itself is static.
-- Postcodes are resolved with the free Postcodes.io bulk lookup endpoint from the browser.
-- No login, backend, or subscription is required.
+## Hosting
+Upload `index.html` and `README.md` to your GitHub repo root and enable GitHub Pages from the `main` branch root.
+
+## Important
+This is still a static front-end app, but the map tiles and postcode lookups load live in the browser, so an internet connection is required when using the app.

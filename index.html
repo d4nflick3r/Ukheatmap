@@ -1,54 +1,56 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>UK Postcode Heat Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <style>
-    :root {
-      --bg:#020617; --panel:#0f172a; --panel2:#111827; --text:#e5e7eb; --muted:#94a3b8; --border:#334155;
-      --accent:#0ea5e9;
-    }
-    * { box-sizing:border-box; }
-    body { margin:0; font-family:Segoe UI, Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .app { display:grid; grid-template-columns:420px 1fr; min-height:100vh; }
-    .sidebar { background:linear-gradient(180deg,#0b1220,#111827); border-right:1px solid var(--border); padding:18px; overflow:auto; }
-    .main { padding:18px; display:flex; flex-direction:column; gap:14px; }
-    .panel { background:rgba(15,23,42,.96); border:1px solid var(--border); border-radius:14px; padding:14px; }
-    h1 { margin:0 0 10px; font-size:22px; }
-    h2 { margin:0 0 8px; font-size:15px; color:#cbd5e1; }
-    .muted { font-size:12px; color:var(--muted); line-height:1.45; }
-    textarea, input, button { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0b1220; color:var(--text); font:inherit; }
-    textarea { min-height:130px; resize:vertical; }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .period-card { border:1px solid var(--border); background:#08111f; border-radius:12px; padding:10px; margin-top:10px; }
-    .legend { display:flex; gap:8px; flex-wrap:wrap; }
-    .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; border:1px solid var(--border); border-radius:999px; padding:6px 10px; background:#071120; }
-    .swatch { width:14px; height:14px; border-radius:999px; border:1px solid rgba(255,255,255,.25); }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .stat { background:#0b1220; border:1px solid var(--border); border-radius:12px; padding:12px; }
-    .stat b { display:block; font-size:22px; margin-top:6px; }
-    .canvas-wrap { flex:1; min-height:680px; background:#0b1220; border:1px solid var(--border); border-radius:18px; padding:12px; }
-    canvas { width:100%; height:100%; display:block; background:linear-gradient(180deg,#eff6ff,#dbeafe); border-radius:12px; }
-    .status { font-size:12px; white-space:pre-wrap; color:#cbd5e1; }
-    .error-list { font-size:12px; color:#fecaca; max-height:140px; overflow:auto; padding-left:18px; }
-    button.primary { background:#0ea5e9; border-color:#0284c7; color:#fff; }
-    @media (max-width:1100px) {
-      .app { grid-template-columns:1fr; }
-      .sidebar { border-right:none; border-bottom:1px solid var(--border); }
-      .stats { grid-template-columns:repeat(2,1fr); }
-    }
+    :root{--bg:#020617;--panel:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--border:#334155}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .app{display:grid;grid-template-columns:420px 1fr;min-height:100vh}
+    .sidebar{padding:18px;background:linear-gradient(180deg,#0b1220,#111827);border-right:1px solid var(--border);overflow:auto}
+    .main{padding:18px;display:flex;flex-direction:column;gap:14px}
+    h1{font-size:22px;margin:0 0 10px}
+    h2{font-size:15px;margin:0 0 8px;color:#cbd5e1}
+    .muted{color:var(--muted);font-size:12px;line-height:1.45}
+    .panel{background:rgba(15,23,42,.95);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+    label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:6px}
+    input,textarea,button,select{width:100%;border-radius:10px;border:1px solid var(--border);background:#0b1220;color:var(--text);padding:10px 12px;font:inherit}
+    textarea{min-height:120px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .period-card{border:1px solid #334155;border-radius:12px;padding:10px;margin-top:10px;background:#08111f}
+    button{cursor:pointer}
+    button.primary{background:#0ea5e9;color:#fff;border-color:#0284c7}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .stat{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:12px}
+    .stat b{display:block;font-size:22px;margin-top:6px}
+    .legend{display:flex;flex-wrap:wrap;gap:8px}
+    .legend-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:#071120;font-size:12px}
+    .swatch{width:14px;height:14px;border-radius:999px;border:1px solid rgba(255,255,255,.25)}
+    .map-wrap{background:#0b1220;border:1px solid var(--border);border-radius:18px;padding:12px;flex:1;min-height:700px}
+    #map{width:100%;height:100%;min-height:660px;border-radius:12px;overflow:hidden}
+    .status{font-size:12px;color:#cbd5e1;white-space:pre-wrap}
+    .error-list{font-size:12px;max-height:120px;overflow:auto;padding-left:18px;color:#fecaca}
+    .leaflet-container{font:12px/1.4 Segoe UI,Arial,sans-serif}
+    .leaflet-control-attribution{font-size:11px}
+    .map-note{font-size:11px;color:#94a3b8}
+    @media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border)}.stats{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <h1>UK Postcode Heat Map</h1>
-    <div class="muted">Now using a proper United Kingdom boundary outline instead of a hand-drawn silhouette. Paste postcodes directly, optionally with dates, split them into periods, and colour each period separately.</div>
+    <div class="muted">Static GitHub-hostable app using a real OpenStreetMap basemap. Paste postcodes directly, optionally with dates, split them into periods, and colour each period separately.</div>
 
     <div class="panel">
       <h2>1) Paste postcode data</h2>
-      <textarea id="rawData" placeholder="ME18 5AA&#10;SW1A 1AA,2026-03-01&#10;EC1A 1BB	26/03/2026&#10;M1 1AE | 2026-02-14"></textarea>
+      <textarea id="rawData" placeholder="ME18 5AA
+SW1A 1AA,2026-03-01
+EC1A 1BB	26/03/2026
+M1 1AE | 2026-02-14"></textarea>
       <div class="muted">One postcode per line. Optional date after comma, tab, pipe or semicolon.</div>
     </div>
 
@@ -62,14 +64,31 @@
     </div>
 
     <div class="panel">
-      <h2>3) Plot</h2>
+      <h2>3) Display</h2>
+      <div class="row">
+        <div>
+          <label>Mode</label>
+          <select id="displayMode">
+            <option value="markers">Coloured markers</option>
+            <option value="heat">Heat circles</option>
+          </select>
+        </div>
+        <div>
+          <label>Circle radius</label>
+          <input id="radiusInput" type="range" min="8" max="40" step="1" value="18"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>4) Plot</h2>
       <div class="row">
         <button class="primary" id="plotBtn">Resolve postcodes and plot</button>
         <button id="demoBtn">Load demo</button>
       </div>
       <div class="row" style="margin-top:10px">
-        <button id="exportPngBtn">Export PNG</button>
-        <button id="exportCsvBtn">Export CSV</button>
+        <button id="exportCsvBtn">Export plotted CSV</button>
+        <button id="printBtn">Open print view</button>
       </div>
       <div class="status" id="statusBox" style="margin-top:10px">Ready.</div>
     </div>
@@ -77,7 +96,7 @@
     <div class="panel">
       <h2>Invalid / unmatched rows</h2>
       <ul class="error-list" id="errorList"></ul>
-      <div class="muted">Uses the free Postcodes.io bulk lookup endpoint in the browser. Results are cached locally.</div>
+      <div class="map-note">Map tiles and postcode lookups load live in the browser.</div>
     </div>
   </aside>
 
@@ -85,25 +104,23 @@
     <div class="stats">
       <div class="stat"><span>Input rows</span><b id="rowsCount">0</b></div>
       <div class="stat"><span>Valid postcodes</span><b id="validCount">0</b></div>
-      <div class="stat"><span>Plotted points</span><b id="plottedCount">0</b></div>
+      <div class="stat"><span>Plotted rows</span><b id="plottedCount">0</b></div>
       <div class="stat"><span>Periods active</span><b id="periodCount">0</b></div>
     </div>
 
-    <div class="panel">
-      <div class="legend" id="legend"></div>
-    </div>
+    <div class="panel"><div class="legend" id="legend"></div></div>
 
-    <div class="canvas-wrap">
-      <canvas id="mapCanvas" width="1500" height="950"></canvas>
+    <div class="map-wrap">
+      <div id="map"></div>
     </div>
   </main>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id":"GBR","properties":{"name":"United Kingdom"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-5.661949,54.554603],[-6.197885,53.867565],[-6.95373,54.073702],[-7.572168,54.059956],[-7.366031,54.595841],[-7.572168,55.131622],[-6.733847,55.17286],[-5.661949,54.554603]]],[[[-3.005005,58.635],[-4.073828,57.553025],[-3.055002,57.690019],[-1.959281,57.6848],[-2.219988,56.870017],[-3.119003,55.973793],[-2.085009,55.909998],[-2.005676,55.804903],[-1.114991,54.624986],[-0.430485,54.464376],[0.184981,53.325014],[0.469977,52.929999],[1.681531,52.73952],[1.559988,52.099998],[1.050562,51.806761],[1.449865,51.289428],[0.550334,50.765739],[-0.787517,50.774989],[-2.489998,50.500019],[-2.956274,50.69688],[-3.617448,50.228356],[-4.542508,50.341837],[-5.245023,49.96],[-5.776567,50.159678],[-4.30999,51.210001],[-3.414851,51.426009],[-3.422719,51.426848],[-4.984367,51.593466],[-5.267296,51.9914],[-4.222347,52.301356],[-4.770013,52.840005],[-4.579999,53.495004],[-3.093831,53.404547],[-3.09208,53.404441],[-2.945009,53.985],[-3.614701,54.600937],[-3.630005,54.615013],[-4.844169,54.790971],[-5.082527,55.061601],[-4.719112,55.508473],[-5.047981,55.783986],[-5.586398,55.311146],[-5.644999,56.275015],[-6.149981,56.78501],[-5.786825,57.818848],[-5.009999,58.630013],[-4.211495,58.550845],[-3.005005,58.635]]]]}}]};
-
 (() => {
-  const STORAGE_KEY = "uk_postcode_heatmap_cache_v2";
+  const STORAGE_KEY = "uk_postcode_heatmap_cache_osm_v1";
+  const PERIODS_KEY = "uk_postcode_heatmap_periods_osm_v1";
   const DEFAULT_PERIODS = [
     { name:"Period 1", start:"", end:"", color:"#ef4444", includeUndated:true },
     { name:"Period 2", start:"", end:"", color:"#3b82f6", includeUndated:false }
@@ -114,130 +131,83 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
   const legendEl = document.getElementById("legend");
   const errorList = document.getElementById("errorList");
   const statusBox = document.getElementById("statusBox");
-  const canvas = document.getElementById("mapCanvas");
-  const ctx = canvas.getContext("2d");
+  const displayModeEl = document.getElementById("displayMode");
+  const radiusInputEl = document.getElementById("radiusInput");
 
-  const state = {
-    periods: loadPeriods(),
-    cache: loadCache(),
-    parsedRows: [],
-    plotted: [],
-    invalidRows: [],
-    projection: null
-  };
+  const state = { periods: loadPeriods(), cache: loadCache(), parsedRows: [], plotted: [] };
 
-  function loadCache() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
-  }
-  function saveCache() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cache));
-  }
-  function loadPeriods() {
-    try {
-      const v = JSON.parse(localStorage.getItem("uk_heatmap_periods_v2") || "null");
-      return Array.isArray(v) && v.length ? v : structuredClone(DEFAULT_PERIODS);
-    } catch {
-      return structuredClone(DEFAULT_PERIODS);
-    }
-  }
-  function savePeriods() {
-    localStorage.setItem("uk_heatmap_periods_v2", JSON.stringify(state.periods));
-  }
-  function setStatus(msg) { statusBox.textContent = msg; }
+  const map = L.map("map", { zoomControl:true }).setView([54.5, -3.5], 6);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  const layerGroup = L.layerGroup().addTo(map);
 
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
-  }
-
-  function normalisePostcode(pc) {
-    return String(pc || "").toUpperCase().replace(/\s+/g, "").trim();
-  }
-  function formatPostcode(pc) {
-    pc = normalisePostcode(pc);
-    return pc.length > 3 ? pc.slice(0, -3) + " " + pc.slice(-3) : pc;
-  }
-  function looksLikePostcode(pc) {
-    return /^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(normalisePostcode(pc));
-  }
-  function parseDate(value) {
+  function loadCache(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; } }
+  function saveCache(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cache)); }
+  function loadPeriods(){ try { const v = JSON.parse(localStorage.getItem(PERIODS_KEY) || "null"); return Array.isArray(v) && v.length ? v : structuredClone(DEFAULT_PERIODS); } catch { return structuredClone(DEFAULT_PERIODS); } }
+  function savePeriods(){ localStorage.setItem(PERIODS_KEY, JSON.stringify(state.periods)); }
+  function setStatus(msg){ statusBox.textContent = msg; }
+  function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s])); }
+  function normalisePostcode(pc){ return String(pc || "").toUpperCase().replace(/\s+/g, "").trim(); }
+  function formatPostcode(pc){ pc = normalisePostcode(pc); return pc.length > 3 ? pc.slice(0, -3) + " " + pc.slice(-3) : pc; }
+  function looksLikePostcode(pc){ return /^[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2}$/.test(normalisePostcode(pc)); }
+  function parseDate(value){
     if (!value) return null;
     value = String(value).trim();
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) {
-      const [_, d, mo, y] = m;
-      return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    }
+    if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
     return null;
   }
 
-  function parseInput(text) {
-    const rows = [];
-    const invalid = [];
+  function parseInput(text){
+    const rows = [], invalid = [];
     const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-
     lines.forEach((line, idx) => {
       let postcode = line, rawDate = "";
       const parts = line.split(/\t|,|\||;/).map(s => s.trim()).filter(Boolean);
-      if (parts.length >= 2) {
-        postcode = parts[0];
-        rawDate = parts[1];
-      }
-      if (!looksLikePostcode(postcode)) {
-        invalid.push(`Line ${idx + 1}: invalid postcode format → ${line}`);
-        return;
-      }
-      rows.push({
-        row: idx + 1,
-        postcode: formatPostcode(postcode),
-        postcodeKey: normalisePostcode(postcode),
-        date: parseDate(rawDate),
-        rawDate
-      });
-      if (rawDate && !parseDate(rawDate)) {
-        invalid.push(`Line ${idx + 1}: date not recognised → ${rawDate}`);
-      }
+      if (parts.length >= 2) { postcode = parts[0]; rawDate = parts[1]; }
+      if (!looksLikePostcode(postcode)) { invalid.push(`Line ${idx + 1}: invalid postcode format → ${line}`); return; }
+      rows.push({ row: idx + 1, postcode: formatPostcode(postcode), postcodeKey: normalisePostcode(postcode), date: parseDate(rawDate) });
+      if (rawDate && !parseDate(rawDate)) invalid.push(`Line ${idx + 1}: date not recognised → ${rawDate}`);
     });
-
     return { rows, invalid };
   }
 
-  async function lookupPostcodes(rows) {
+  async function lookupPostcodes(rows){
     const unresolved = [...new Set(rows.map(r => r.postcodeKey))].filter(k => !state.cache[k]);
     const batches = [];
-    for (let i = 0; i < unresolved.length; i += 100) {
-      batches.push(unresolved.slice(i, i + 100));
-    }
-
+    for (let i = 0; i < unresolved.length; i += 100) batches.push(unresolved.slice(i, i + 100));
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
       setStatus(`Resolving postcodes ${i * 100 + 1}-${i * 100 + batch.length} of ${unresolved.length}...`);
       const res = await fetch("https://api.postcodes.io/postcodes?filter=postcode,longitude,latitude", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcodes: batch.map(formatPostcode) })
+        method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ postcodes: batch.map(formatPostcode) })
       });
       if (!res.ok) throw new Error(`Postcode lookup failed with status ${res.status}`);
       const json = await res.json();
       (json.result || []).forEach(item => {
         const key = normalisePostcode(item.query);
         if (item.result && typeof item.result.latitude === "number" && typeof item.result.longitude === "number") {
-          state.cache[key] = {
-            postcode: item.result.postcode || formatPostcode(item.query),
-            latitude: item.result.latitude,
-            longitude: item.result.longitude
-          };
+          state.cache[key] = { postcode: item.result.postcode || formatPostcode(item.query), latitude: item.result.latitude, longitude: item.result.longitude };
         } else {
-          state.cache[key] = { invalid: true, postcode: formatPostcode(item.query) };
+          state.cache[key] = { invalid:true, postcode: formatPostcode(item.query) };
         }
       });
       saveCache();
     }
-
     return rows.map(r => ({ ...r, geo: state.cache[r.postcodeKey] || null }));
   }
 
-  function renderPeriods() {
+  function periodMatch(row, period){
+    if (!row.date) return !!period.includeUndated;
+    if (period.start && row.date < period.start) return false;
+    if (period.end && row.date > period.end) return false;
+    return true;
+  }
+
+  function renderPeriods(){
     periodsEl.innerHTML = "";
     state.periods.forEach((p, idx) => {
       const div = document.createElement("div");
@@ -267,7 +237,6 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
         state.periods[i][k] = ev.target.type === "checkbox" ? ev.target.checked : ev.target.value;
         savePeriods();
         drawLegend();
-        updateStats();
       };
       el.addEventListener("input", apply);
       el.addEventListener("change", apply);
@@ -280,236 +249,80 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
         if (!state.periods.length) state.periods.push(structuredClone(DEFAULT_PERIODS[0]));
         savePeriods();
         renderPeriods();
-        redraw();
       });
     });
 
+    document.getElementById("periodCount").textContent = String(state.periods.length);
     drawLegend();
-    updateStats();
   }
 
-  function drawLegend() {
+  function drawLegend(){
     legendEl.innerHTML = "";
+    const counts = {};
+    state.plotted.forEach(p => counts[p.periodName] = (counts[p.periodName] || 0) + 1);
     state.periods.forEach(p => {
       const item = document.createElement("div");
       item.className = "legend-item";
-      item.innerHTML = `<span class="swatch" style="background:${p.color}"></span><span>${escapeHtml(p.name || "Unnamed period")}</span>`;
+      item.innerHTML = `<span class="swatch" style="background:${p.color}"></span><span>${escapeHtml(p.name || "Unnamed period")} (${counts[p.name] || 0})</span>`;
       legendEl.appendChild(item);
     });
   }
 
-  function periodMatch(row, period) {
-    if (!row.date) return !!period.includeUndated;
-    if (period.start && row.date < period.start) return false;
-    if (period.end && row.date > period.end) return false;
-    return true;
-  }
+  function clearLayers(){ layerGroup.clearLayers(); }
 
-  function buildProjection() {
-    const coords = [];
-    UK_GEOJSON.features.forEach(f => {
-      const geom = f.geometry;
-      if (geom.type === "Polygon") {
-        geom.coordinates.flat().forEach(c => coords.push(c));
-      } else if (geom.type === "MultiPolygon") {
-        geom.coordinates.flat(2).forEach(c => coords.push(c));
-      }
-    });
-    const xs = coords.map(c => c[0]);
-    const ys = coords.map(c => c[1]);
-    const minLon = Math.min(...xs), maxLon = Math.max(...xs);
-    const minLat = Math.min(...ys), maxLat = Math.max(...ys);
-
-    const pad = 55;
-    const width = canvas.width - pad * 2;
-    const height = canvas.height - pad * 2;
-    const sx = width / (maxLon - minLon);
-    const sy = height / (maxLat - minLat);
-    const scale = Math.min(sx, sy);
-
-    const mapW = (maxLon - minLon) * scale;
-    const mapH = (maxLat - minLat) * scale;
-    const offsetX = (canvas.width - mapW) / 2;
-    const offsetY = (canvas.height - mapH) / 2;
-
-    state.projection = {
-      project(lon, lat) {
-        const x = offsetX + (lon - minLon) * scale;
-        const y = canvas.height - (offsetY + (lat - minLat) * scale);
-        return { x, y };
-      }
-    };
-  }
-
-  function drawBoundary() {
-    if (!state.projection) buildProjection();
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bg.addColorStop(0, "#e0f2fe");
-    bg.addColorStop(1, "#bfdbfe");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // subtle grid
-    ctx.strokeStyle = "rgba(51,65,85,.12)";
-    ctx.lineWidth = 1;
-    for (let x = 60; x < canvas.width; x += 120) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 60; y < canvas.height; y += 120) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    ctx.save();
-    ctx.fillStyle = "#ecfccb";
-    ctx.strokeStyle = "#334155";
-    ctx.lineWidth = 2.2;
-
-    UK_GEOJSON.features.forEach(feature => {
-      const geom = feature.geometry;
-      const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
-      polys.forEach(poly => {
-        poly.forEach((ring, ringIndex) => {
-          ctx.beginPath();
-          ring.forEach(([lon, lat], i) => {
-            const p = state.projection.project(lon, lat);
-            if (i === 0) ctx.moveTo(p.x, p.y);
-            else ctx.lineTo(p.x, p.y);
-          });
-          ctx.closePath();
-          if (ringIndex === 0) {
-            ctx.fill();
-            ctx.stroke();
-          }
-        });
-      });
-    });
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 24px Segoe UI";
-    ctx.fillText("United Kingdom", 28, 38);
-    ctx.font = "14px Segoe UI";
-    ctx.fillStyle = "#334155";
-    ctx.fillText("Accurate UK boundary outline with postcode points", 28, 62);
-
-    ctx.restore();
-  }
-
-  function drawPoints() {
-    if (!state.projection) buildProjection();
+  function plotMap(){
+    clearLayers();
+    if (!state.plotted.length) return;
+    const bounds = [];
+    const mode = displayModeEl.value;
+    const radius = Number(radiusInputEl.value);
 
     state.plotted.forEach(p => {
-      const pos = state.projection.project(p.longitude, p.latitude);
-
-      const glow = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, 30);
-      glow.addColorStop(0, hexToRgba(p.color, 0.34));
-      glow.addColorStop(0.5, hexToRgba(p.color, 0.14));
-      glow.addColorStop(1, hexToRgba(p.color, 0));
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = p.color;
-      ctx.strokeStyle = "rgba(15,23,42,.8)";
-      ctx.lineWidth = 1.1;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 5.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      const latlng = [p.latitude, p.longitude];
+      bounds.push(latlng);
+      let layer;
+      if (mode === "heat") {
+        layer = L.circle(latlng, { radius: radius * 220, color: p.color, weight: 1, opacity: 0.35, fillColor: p.color, fillOpacity: 0.18 });
+      } else {
+        layer = L.circleMarker(latlng, { radius: Math.max(5, Math.round(radius / 3)), color: "#0f172a", weight: 1, fillColor: p.color, fillOpacity: 0.9 });
+      }
+      layer.bindPopup(`<strong>${escapeHtml(p.postcode)}</strong><br>Period: ${escapeHtml(p.periodName)}<br>Date: ${escapeHtml(p.date || "Undated")}`);
+      layer.addTo(layerGroup);
     });
 
-    drawKeyOnCanvas();
+    if (bounds.length === 1) map.setView(bounds[0], 12);
+    else map.fitBounds(bounds, { padding:[30,30] });
   }
 
-  function drawKeyOnCanvas() {
-    const x = canvas.width - 290, y = 20, w = 250, h = 36 + state.periods.length * 28;
-    ctx.fillStyle = "rgba(255,255,255,.88)";
-    ctx.strokeStyle = "rgba(15,23,42,.18)";
-    ctx.lineWidth = 1;
-    roundRect(x, y, w, h, 14);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 16px Segoe UI";
-    ctx.fillText("Map key", x + 14, y + 24);
-
-    state.periods.forEach((p, i) => {
-      const yy = y + 45 + i * 26;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(x + 18, yy - 4, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "14px Segoe UI";
-      ctx.fillText(p.name || `Period ${i + 1}`, x + 34, yy);
-    });
+  function renderInvalid(items){
+    errorList.innerHTML = "";
+    items.forEach(msg => { const li = document.createElement("li"); li.textContent = msg; errorList.appendChild(li); });
   }
 
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function hexToRgba(hex, a) {
-    const m = hex.replace("#", "");
-    const n = parseInt(m.length === 3 ? m.split("").map(c => c + c).join("") : m, 16);
-    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-    return `rgba(${r},${g},${b},${a})`;
-  }
-
-  function redraw() {
-    drawBoundary();
-    drawPoints();
-  }
-
-  function updateStats() {
+  function updateStats(validRows){
     document.getElementById("rowsCount").textContent = String(state.parsedRows.length);
-    document.getElementById("validCount").textContent = String(state.parsedRows.length);
+    document.getElementById("validCount").textContent = String(validRows);
     document.getElementById("plottedCount").textContent = String(state.plotted.length);
     document.getElementById("periodCount").textContent = String(state.periods.length);
   }
 
-  function renderInvalid(items) {
-    errorList.innerHTML = "";
-    items.forEach(msg => {
-      const li = document.createElement("li");
-      li.textContent = msg;
-      errorList.appendChild(li);
-    });
-  }
-
-  async function runPlot() {
+  async function runPlot(){
     try {
       const parsed = parseInput(rawDataEl.value);
       state.parsedRows = parsed.rows;
-      state.invalidRows = parsed.invalid;
       renderInvalid(parsed.invalid);
-      updateStats();
+      updateStats(parsed.rows.length);
 
       if (!parsed.rows.length) {
+        state.plotted = [];
+        clearLayers();
+        drawLegend();
         setStatus("No valid postcode rows found.");
-        redraw();
         return;
       }
 
       setStatus(`Parsed ${parsed.rows.length} postcode rows. Starting lookup...`);
       const rowsWithGeo = await lookupPostcodes(parsed.rows);
-
       const plotted = [];
       const invalid = [...parsed.invalid];
 
@@ -520,23 +333,16 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
         }
         state.periods.forEach((period, idx) => {
           if (periodMatch(row, period)) {
-            plotted.push({
-              row: row.row,
-              postcode: row.postcode,
-              date: row.date || "",
-              latitude: row.geo.latitude,
-              longitude: row.geo.longitude,
-              periodName: period.name || `Period ${idx + 1}`,
-              color: period.color
-            });
+            plotted.push({ row: row.row, postcode: row.postcode, date: row.date || "", latitude: row.geo.latitude, longitude: row.geo.longitude, periodName: period.name || `Period ${idx + 1}`, color: period.color });
           }
         });
       });
 
       state.plotted = plotted;
       renderInvalid(invalid);
-      updateStats();
-      redraw();
+      updateStats(rowsWithGeo.length);
+      plotMap();
+      drawLegend();
       setStatus(`Done. ${plotted.length} plotted point-period rows created from ${rowsWithGeo.length} valid postcode rows.`);
     } catch (err) {
       setStatus(`Error: ${err.message}`);
@@ -544,18 +350,9 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
     }
   }
 
-  function exportPNG() {
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "uk-postcode-heatmap.png";
-    link.click();
-  }
-
-  function exportCSV() {
+  function exportCSV(){
     const headers = ["row","postcode","date","latitude","longitude","periodName","color"];
-    const lines = [headers.join(",")].concat(
-      state.plotted.map(p => [p.row,p.postcode,p.date,p.latitude,p.longitude,csv(p.periodName),p.color].join(","))
-    );
+    const lines = [headers.join(",")].concat(state.plotted.map(p => [p.row,p.postcode,p.date,p.latitude,p.longitude,csv(p.periodName),p.color].join(",")));
     const blob = new Blob([lines.join("\n")], { type:"text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -565,23 +362,14 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
     URL.revokeObjectURL(url);
   }
 
-  function csv(v) {
-    v = String(v ?? "");
-    return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-  }
+  function csv(v){ v = String(v ?? ""); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }
+  function openPrintView(){ window.print(); }
 
-  function loadDemo() {
+  function loadDemo(){
     rawDataEl.value = [
-      "SW1A 1AA,2026-03-01",
-      "ME18 5AA,2026-03-02",
-      "M1 1AE,2026-03-05",
-      "B1 1TB,2026-03-08",
-      "LS1 1UR,2026-03-12",
-      "CF10 1EP,2026-03-18",
-      "G1 1XQ,2026-03-20",
-      "BT1 5GS,2026-03-22",
-      "NE1 1AD,2026-03-23",
-      "L1 8JQ,2026-03-25"
+      "SW1A 1AA,2026-03-01","ME18 5AA,2026-03-02","M1 1AE,2026-03-05","B1 1TB,2026-03-08",
+      "LS1 1UR,2026-03-12","CF10 1EP,2026-03-18","G1 1XQ,2026-03-20","BT1 5GS,2026-03-22",
+      "NE1 1AD,2026-03-23","L1 8JQ,2026-03-25"
     ].join("\n");
     state.periods = [
       { name:"Early March", start:"2026-03-01", end:"2026-03-10", color:"#ef4444", includeUndated:false },
@@ -592,27 +380,17 @@ const UK_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","id
     setStatus("Demo data loaded.");
   }
 
-  document.getElementById("addPeriodBtn").addEventListener("click", () => {
-    state.periods.push({ name:`Period ${state.periods.length + 1}`, start:"", end:"", color:"#22c55e", includeUndated:false });
-    savePeriods();
-    renderPeriods();
-  });
-
-  document.getElementById("resetPeriodsBtn").addEventListener("click", () => {
-    state.periods = structuredClone(DEFAULT_PERIODS);
-    savePeriods();
-    renderPeriods();
-  });
-
+  document.getElementById("addPeriodBtn").addEventListener("click", () => { state.periods.push({ name:`Period ${state.periods.length + 1}`, start:"", end:"", color:"#22c55e", includeUndated:false }); savePeriods(); renderPeriods(); });
+  document.getElementById("resetPeriodsBtn").addEventListener("click", () => { state.periods = structuredClone(DEFAULT_PERIODS); savePeriods(); renderPeriods(); });
   document.getElementById("plotBtn").addEventListener("click", runPlot);
   document.getElementById("demoBtn").addEventListener("click", loadDemo);
-  document.getElementById("exportPngBtn").addEventListener("click", exportPNG);
   document.getElementById("exportCsvBtn").addEventListener("click", exportCSV);
+  document.getElementById("printBtn").addEventListener("click", openPrintView);
+  displayModeEl.addEventListener("change", plotMap);
+  radiusInputEl.addEventListener("input", plotMap);
 
   renderPeriods();
-  buildProjection();
-  redraw();
-  updateStats();
+  updateStats(0);
 })();
 </script>
 </body>
